@@ -151,8 +151,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
+      const token = localStorage.getItem(TOKEN_KEY);
       const u = localStorage.getItem(USER_KEY);
-      if (u) setUserState(JSON.parse(u));
+      if (u) {
+        setUserState(JSON.parse(u));
+      } else if (token) {
+        setUserState({ name: "User", email: "user@lynkr.com" });
+      }
     } catch {
       /* ignore */
     }

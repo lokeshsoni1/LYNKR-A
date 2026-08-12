@@ -33,28 +33,37 @@ function RegisterPage() {
     setLoading(true);
     setErrorMsg(null);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
+        signal: controller.signal,
       });
 
-      const data = await res.json();
+      clearTimeout(timeoutId);
+
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        /* fallback empty object */
+      }
 
       if (res.status === 400 || res.status === 409) {
-        const dupMsg = "Email is already registered. Please log in.";
+        const dupMsg = "This email is already registered. Please log in instead!";
         setErrorMsg(dupMsg);
         toast.error(dupMsg);
-        setLoading(false);
         return;
       }
 
-      if (!res.ok || !data.success) {
+      if (!res.ok || (data.success !== undefined && !data.success)) {
         const failMsg = data.message || "Registration failed. Please try again.";
         setErrorMsg(failMsg);
         toast.error(failMsg);
-        setLoading(false);
         return;
       }
 
@@ -69,15 +78,19 @@ function RegisterPage() {
         email: user?.email || email,
       });
 
-      toast.success("Welcome to Lynkr! Account created.");
+      toast.success("Account registered successfully!");
       await fetchMyLinks();
       navigate({ to: "/links" });
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      const netMsg = "Network error. Could not connect to backend server.";
+      const isAbort = err.name === "AbortError";
+      const netMsg = isAbort
+        ? "Server waking up. Please try clicking Create Account again in 10 seconds."
+        : "Network error. Could not connect to backend server.";
       setErrorMsg(netMsg);
       toast.error(netMsg);
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };

@@ -32,43 +32,71 @@ function LoginPage() {
     setLoading(true);
     setErrorMsg(null);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
+        signal: controller.signal,
       });
 
-      const data = await res.json();
+      clearTimeout(timeoutId);
 
-      if (res.status === 401 || res.status === 400 || !res.ok || !data.success) {
-        const msg = res.status === 401 ? "Invalid email or password." : (data.message || "Invalid email or password.");
-        setErrorMsg(msg);
-        toast.error(msg);
-        setLoading(false);
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        /* fallback empty object */
+      }
+
+      if (res.ok && (data.success || data.token || data.data?.token)) {
+        const token = data.token || data.data?.token;
+        const user = data.user || data.data?.user;
+
+        if (token) {
+          localStorage.setItem("jwt_token", token);
+        }
+        setUser({
+          name: user?.name || email.split("@")[0] || "User",
+          email: user?.email || email,
+        });
+
+        toast.success("Login successful!");
+        await fetchMyLinks();
+        navigate({ to: "/links" });
         return;
       }
 
-      const token = data.token || data.data?.token;
-      const user = data.user || data.data?.user;
-
-      if (token) {
-        localStorage.setItem("jwt_token", token);
+      if (res.status === 404 || (res.status === 400 && data.message?.toLowerCase().includes("user"))) {
+        const notFoundText = "User does not exist. Please register first or check your email!";
+        setErrorMsg(notFoundText);
+        toast.error(notFoundText);
+        return;
       }
-      setUser({
-        name: user?.name || email.split("@")[0] || "User",
-        email: user?.email || email,
-      });
 
-      toast.success("Welcome back!");
-      await fetchMyLinks();
-      navigate({ to: "/links" });
-    } catch (err) {
+      if (res.status === 401) {
+        const invalidText = "Invalid email or password. Please try again.";
+        setErrorMsg(invalidText);
+        toast.error(invalidText);
+        return;
+      }
+
+      const failMsg = data.message || "Invalid email or password. Please try again.";
+      setErrorMsg(failMsg);
+      toast.error(failMsg);
+    } catch (err: any) {
       console.error(err);
-      const netMsg = "Network error. Could not connect to backend server.";
+      const isAbort = err.name === "AbortError";
+      const netMsg = isAbort
+        ? "Server waking up. Please try clicking Login again in 10 seconds."
+        : "Server waking up. Please try clicking Login again in 10 seconds.";
       setErrorMsg(netMsg);
       toast.error(netMsg);
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };
