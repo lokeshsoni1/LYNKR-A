@@ -32,6 +32,8 @@ function LoginPage() {
     setLoading(true);
     setErrorMsg(null);
 
+    const formattedEmail = email.trim().toLowerCase();
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
@@ -39,7 +41,7 @@ function LoginPage() {
       const res = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: formattedEmail, password }),
         signal: controller.signal,
       });
 
@@ -60,8 +62,8 @@ function LoginPage() {
           localStorage.setItem("jwt_token", token);
         }
         setUser({
-          name: user?.name || email.split("@")[0] || "User",
-          email: user?.email || email,
+          name: user?.name || formattedEmail.split("@")[0] || "User",
+          email: user?.email || formattedEmail,
         });
 
         toast.success("Login successful!");
@@ -71,20 +73,20 @@ function LoginPage() {
       }
 
       if (res.status === 404 || (res.status === 400 && data.message?.toLowerCase().includes("user"))) {
-        const notFoundText = "User does not exist. Please register first or check your email!";
+        const notFoundText = "User does not exist. Please register first!";
         setErrorMsg(notFoundText);
         toast.error(notFoundText);
         return;
       }
 
       if (res.status === 401) {
-        const invalidText = "Invalid email or password. Please try again.";
+        const invalidText = "Invalid email or password.";
         setErrorMsg(invalidText);
         toast.error(invalidText);
         return;
       }
 
-      const failMsg = data.message || "Invalid email or password. Please try again.";
+      const failMsg = data.message || "Invalid email or password.";
       setErrorMsg(failMsg);
       toast.error(failMsg);
     } catch (err: any) {
@@ -92,7 +94,7 @@ function LoginPage() {
       const isAbort = err.name === "AbortError";
       const netMsg = isAbort
         ? "Server waking up. Please try clicking Login again in 10 seconds."
-        : "Server waking up. Please try clicking Login again in 10 seconds.";
+        : "Network error. Could not connect to backend server.";
       setErrorMsg(netMsg);
       toast.error(netMsg);
     } finally {

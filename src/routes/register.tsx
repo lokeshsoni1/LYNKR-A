@@ -33,6 +33,9 @@ function RegisterPage() {
     setLoading(true);
     setErrorMsg(null);
 
+    const formattedName = name.trim();
+    const formattedEmail = email.trim().toLowerCase();
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
@@ -40,7 +43,7 @@ function RegisterPage() {
       const res = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name: formattedName, email: formattedEmail, password }),
         signal: controller.signal,
       });
 
@@ -54,9 +57,9 @@ function RegisterPage() {
       }
 
       if (res.status === 400 || res.status === 409) {
-        const dupMsg = "This email is already registered. Please log in instead!";
+        const dupMsg = "User already registered! Please log in instead.";
         setErrorMsg(dupMsg);
-        toast.error(dupMsg);
+        toast.warning(dupMsg);
         return;
       }
 
@@ -74,11 +77,11 @@ function RegisterPage() {
         localStorage.setItem("jwt_token", token);
       }
       setUser({
-        name: user?.name || name || "User",
-        email: user?.email || email,
+        name: user?.name || formattedName || "User",
+        email: user?.email || formattedEmail,
       });
 
-      toast.success("Account registered successfully!");
+      toast.success("Account created and saved successfully! Redirecting...");
       await fetchMyLinks();
       navigate({ to: "/links" });
     } catch (err: any) {
