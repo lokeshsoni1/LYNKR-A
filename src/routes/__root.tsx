@@ -15,8 +15,7 @@ import { Navbar } from "../components/navbar";
 import { Footer } from "../components/footer";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "sonner";
-
-const GOOGLE_CLIENT_ID_LITERAL = "637130191517-59Ihl18p7ic7smq6n6pdom9ejkmk5ju8.apps.googleusercontent.com";
+import { GOOGLE_CLIENT_ID } from "../config/constants";
 
 function NotFoundComponent() {
   return (
@@ -140,7 +139,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID_LITERAL}>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <QueryClientProvider client={queryClient}>
         <AppStoreProvider>
           <div className="flex min-h-screen flex-col">
