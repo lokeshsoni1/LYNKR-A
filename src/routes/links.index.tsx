@@ -58,7 +58,7 @@ export const Route = createFileRoute("/links/")({
 });
 
 function LinksPage() {
-  const { links, user, fetchMyLinks, deleteLink, addGuestLink } = useStore();
+  const { links, user, fetchMyLinks, deleteLink, addGuestLink, addCreatedLink } = useStore();
   const [query, setQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [toDelete, setToDelete] = useState<LinkRecord | null>(null);
@@ -148,15 +148,19 @@ function LinksPage() {
       const resData = data.data;
       const codeOrAlias = resData.customAlias || resData.shortCode;
 
+      const newRecord = {
+        id: String(resData.id || Date.now()),
+        slug: codeOrAlias,
+        original: resData.originalUrl || original.trim(),
+        clicks: resData.clickCount || 0,
+        createdAt: resData.createdAt || new Date().toISOString(),
+        expiresAt: resData.expiresAt || null,
+      };
+
       if (!token) {
-        addGuestLink({
-          id: String(resData.id || Date.now()),
-          slug: codeOrAlias,
-          original: resData.originalUrl || original.trim(),
-          clicks: resData.clickCount || 0,
-          createdAt: resData.createdAt || new Date().toISOString(),
-          expiresAt: resData.expiresAt || null,
-        });
+        addGuestLink(newRecord);
+      } else {
+        addCreatedLink(newRecord);
       }
 
       setOriginal("");

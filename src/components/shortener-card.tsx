@@ -22,7 +22,7 @@ import { useStore } from "@/lib/store";
 import { toast } from "sonner";
 
 export function ShortenerCard() {
-  const { links, user, fetchMyLinks, addGuestLink } = useStore();
+  const { links, user, fetchMyLinks, addGuestLink, addCreatedLink } = useStore();
   const [url, setUrl] = useState("");
   const [alias, setAlias] = useState("");
   const [expiration, setExpiration] = useState("never");
@@ -105,16 +105,19 @@ export function ShortenerCard() {
       const codeOrAlias = resData.customAlias || resData.shortCode;
       const liveShortUrl = formatShortUrl(codeOrAlias);
 
+      const newRecord = {
+        id: String(resData.id || Date.now()),
+        slug: codeOrAlias,
+        original: resData.originalUrl || url.trim(),
+        clicks: resData.clickCount || 0,
+        createdAt: resData.createdAt || new Date().toISOString(),
+        expiresAt: resData.expiresAt || null,
+      };
+
       if (!token) {
-        // Guest mode link record creation
-        addGuestLink({
-          id: String(resData.id || Date.now()),
-          slug: codeOrAlias,
-          original: resData.originalUrl || url.trim(),
-          clicks: resData.clickCount || 0,
-          createdAt: resData.createdAt || new Date().toISOString(),
-          expiresAt: resData.expiresAt || null,
-        });
+        addGuestLink(newRecord);
+      } else {
+        addCreatedLink(newRecord);
       }
 
       setResult(liveShortUrl);
