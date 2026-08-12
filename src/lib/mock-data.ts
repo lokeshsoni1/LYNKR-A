@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "@/config/constants";
+import { API_BASE_URL, formatShortUrl } from "@/config/constants";
 
 export type User = {
   id?: number;
@@ -58,7 +58,7 @@ export function formatDate(iso: string | null) {
 export function getExpirationInDays(value: string): number | null {
   switch (value) {
     case "1h":
-      return 1; // Backend accepts expirationInDays as Integer
+      return 1;
     case "24h":
       return 1;
     case "7d":
@@ -69,3 +69,40 @@ export function getExpirationInDays(value: string): number | null {
       return null;
   }
 }
+
+export const CLICKS_7D = [
+  { label: "Mon", clicks: 0 },
+  { label: "Tue", clicks: 0 },
+  { label: "Wed", clicks: 0 },
+  { label: "Thu", clicks: 0 },
+  { label: "Fri", clicks: 0 },
+  { label: "Sat", clicks: 0 },
+  { label: "Sun", clicks: 0 },
+];
+
+export const CLICKS_30D = Array.from({ length: 30 }, (_, i) => ({
+  label: `${i + 1}`,
+  clicks: 0,
+}));
+
+export const DEVICES = [
+  { label: "Mobile", value: 0 },
+  { label: "Desktop", value: 0 },
+  { label: "Tablet", value: 0 },
+];
+
+export const BROWSERS = [
+  { label: "Chrome", value: 0 },
+  { label: "Safari", value: 0 },
+  { label: "Firefox", value: 0 },
+  { label: "Edge", value: 0 },
+];
+
+export const REFERRERS = [
+  { label: "Direct", value: 0 },
+  { label: "Twitter / X", value: 0 },
+  { label: "LinkedIn", value: 0 },
+  { label: "Newsletter", value: 0 },
+];
+
+export const RECENT_ACTIVITY: { slug: string; device: string; source: string; time: string }[] = [];
