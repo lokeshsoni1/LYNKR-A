@@ -43,6 +43,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/links/")({
   head: () => ({
@@ -57,7 +58,7 @@ export const Route = createFileRoute("/links/")({
 });
 
 function LinksPage() {
-  const { links, fetchMyLinks, deleteLink } = useStore();
+  const { links, user, fetchMyLinks, deleteLink, addGuestLink } = useStore();
   const [query, setQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [toDelete, setToDelete] = useState<LinkRecord | null>(null);
@@ -94,6 +95,14 @@ function LinksPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!original.trim()) return;
+
+    if (links.length >= 10) {
+      const limitText = "Link Limit Reached: You can only store up to 10 links per account to optimize storage. Delete old links to create new ones.";
+      setErrorMsg(limitText);
+      toast.error(limitText);
+      return;
+    }
+
     setLoading(true);
     setErrorMsg(null);
 
@@ -121,25 +130,46 @@ function LinksPage() {
       const data = await res.json();
 
       if (res.status === 400 || res.status === 409) {
-        setErrorMsg("Custom alias is already in use. Please try another.");
+        const errorText = "Custom alias already taken. Try another.";
+        setErrorMsg(errorText);
+        toast.error(errorText);
         setLoading(false);
         return;
       }
 
       if (!res.ok || !data.success) {
-        setErrorMsg(data.message || "Failed to create short link.");
+        const errorText = data.message || "Failed to create short link.";
+        setErrorMsg(errorText);
+        toast.error(errorText);
         setLoading(false);
         return;
+      }
+
+      const resData = data.data;
+      const codeOrAlias = resData.customAlias || resData.shortCode;
+
+      if (!token) {
+        addGuestLink({
+          id: String(resData.id || Date.now()),
+          slug: codeOrAlias,
+          original: resData.originalUrl || original.trim(),
+          clicks: resData.clickCount || 0,
+          createdAt: resData.createdAt || new Date().toISOString(),
+          expiresAt: resData.expiresAt || null,
+        });
       }
 
       setOriginal("");
       setAlias("");
       setExpiration("never");
       setCreateOpen(false);
-      fetchMyLinks();
+      toast.success("Link Shortened Successfully!");
+      if (token) fetchMyLinks();
     } catch (err) {
       console.error(err);
-      setErrorMsg("Network error. Could not connect to backend server.");
+      const netErr = "Network error. Could not connect to backend server.";
+      setErrorMsg(netErr);
+      toast.error(netErr);
     } finally {
       setLoading(false);
     }
@@ -147,12 +177,28 @@ function LinksPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-14">
+      {!user && (
+        <div className="mb-8 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <span className="font-semibold">⚠️ Guest Mode:</span> Your links are saved temporarily in browser cache. Log in or Register to save links permanently in database before tab closes!
+          </div>
+          <div className="flex gap-2">
+            <Button asChild variant="outline" size="sm" className="border-amber-500/40 text-amber-100 hover:bg-amber-500/20">
+              <Link to="/login">Log in</Link>
+            </Button>
+            <Button asChild size="sm" className="bg-amber-500 hover:bg-amber-600 text-black font-medium">
+              <Link to="/register">Register</Link>
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="eyebrow">DASHBOARD</p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight">My Links</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {links.length} links total · {links.filter((l) => !isExpired(l)).length} active
+            {links.length} / 10 links total · {links.filter((l) => !isExpired(l)).length} active
           </p>
         </div>
         <Button onClick={() => setCreateOpen(true)}>Create Short Link</Button>

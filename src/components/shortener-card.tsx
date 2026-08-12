@@ -22,7 +22,7 @@ import { useStore } from "@/lib/store";
 import { toast } from "sonner";
 
 export function ShortenerCard() {
-  const { fetchMyLinks } = useStore();
+  const { links, user, fetchMyLinks, addGuestLink } = useStore();
   const [url, setUrl] = useState("");
   const [alias, setAlias] = useState("");
   const [expiration, setExpiration] = useState("never");
@@ -34,6 +34,14 @@ export function ShortenerCard() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url.trim()) return;
+
+    if (links.length >= 10) {
+      const limitText = "Link Limit Reached: You can only store up to 10 links per account to optimize storage. Delete old links to create new ones.";
+      setErrorMsg(limitText);
+      toast.error(limitText);
+      return;
+    }
+
     setLoading(true);
     setResult(null);
     setErrorMsg(null);
@@ -97,13 +105,25 @@ export function ShortenerCard() {
       const codeOrAlias = resData.customAlias || resData.shortCode;
       const liveShortUrl = formatShortUrl(codeOrAlias);
 
+      if (!token) {
+        // Guest mode link record creation
+        addGuestLink({
+          id: String(resData.id || Date.now()),
+          slug: codeOrAlias,
+          original: resData.originalUrl || url.trim(),
+          clicks: resData.clickCount || 0,
+          createdAt: resData.createdAt || new Date().toISOString(),
+          expiresAt: resData.expiresAt || null,
+        });
+      }
+
       setResult(liveShortUrl);
       setUrl("");
       setAlias("");
       setExpiration("never");
       setCopied(false);
       toast.success("Link Shortened Successfully!");
-      fetchMyLinks();
+      if (token) fetchMyLinks();
     } catch (err: any) {
       clearTimeout(timer);
       clearTimeout(timeoutId);

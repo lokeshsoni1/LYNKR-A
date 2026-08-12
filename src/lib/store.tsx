@@ -27,12 +27,14 @@ type Store = {
   links: LinkRecord[];
   fetchMyLinks: () => Promise<void>;
   deleteLink: (id: string) => Promise<void>;
+  addGuestLink: (link: LinkRecord) => void;
 };
 
 const StoreContext = createContext<Store | null>(null);
 
 const USER_KEY = "lynkr.user";
 const TOKEN_KEY = "jwt_token";
+const GUEST_LINKS_KEY = "lynkr_guest_links";
 
 export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [user, setUserState] = useState<User | null>(null);
@@ -55,13 +57,38 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     setUserState(null);
-    setLinks([]);
+    try {
+      const g = localStorage.getItem(GUEST_LINKS_KEY);
+      if (g) setLinks(JSON.parse(g));
+      else setLinks([]);
+    } catch {
+      setLinks([]);
+    }
+  }, []);
+
+  const addGuestLink = useCallback((link: LinkRecord) => {
+    setLinks((prev) => {
+      const next = [link, ...prev];
+      try {
+        localStorage.setItem(GUEST_LINKS_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
   }, []);
 
   const fetchMyLinks = useCallback(async () => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
-      setLinks([]);
+      // Guest mode: load from localStorage
+      try {
+        const g = localStorage.getItem(GUEST_LINKS_KEY);
+        if (g) setLinks(JSON.parse(g));
+        else setLinks([]);
+      } catch {
+        setLinks([]);
+      }
       return;
     }
     try {
@@ -92,7 +119,19 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const deleteLink = useCallback(
     async (id: string) => {
       const token = localStorage.getItem(TOKEN_KEY);
-      if (!token) return;
+      if (!token) {
+        // Guest mode deletion
+        setLinks((prev) => {
+          const next = prev.filter((l) => l.id !== id);
+          try {
+            localStorage.setItem(GUEST_LINKS_KEY, JSON.stringify(next));
+          } catch {
+            /* ignore */
+          }
+          return next;
+        });
+        return;
+      }
       try {
         const res = await fetch(`${API_BASE_URL}/api/v1/urls/${id}`, {
           method: "DELETE",
@@ -128,8 +167,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       links,
       fetchMyLinks,
       deleteLink,
+      addGuestLink,
     }),
-    [user, setUser, logout, links, fetchMyLinks, deleteLink],
+    [user, setUser, logout, links, fetchMyLinks, deleteLink, addGuestLink],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
