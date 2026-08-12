@@ -27,7 +27,6 @@ function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,66 +43,56 @@ function RegisterPage() {
 
       const data = await res.json();
 
-      if (!res.ok || !data.success) {
-        setErrorMsg(data.message || "Registration failed. Please try again.");
+      if (res.status === 400 || res.status === 409) {
+        const dupMsg = "Email is already registered. Please log in instead.";
+        setErrorMsg(dupMsg);
+        toast.error(dupMsg);
         setLoading(false);
         return;
       }
 
-      const { token, user } = data.data;
-      localStorage.setItem("jwt_token", token);
+      if (!res.ok || !data.success) {
+        const failMsg = data.message || "Registration failed. Please try again.";
+        setErrorMsg(failMsg);
+        toast.error(failMsg);
+        setLoading(false);
+        return;
+      }
+
+      const token = data.token || data.data?.token;
+      const user = data.user || data.data?.user;
+
+      if (token) {
+        localStorage.setItem("jwt_token", token);
+      }
       setUser({
         name: user?.name || name || "User",
         email: user?.email || email,
       });
 
+      toast.success("Account created successfully!");
       await fetchMyLinks();
       navigate({ to: "/links" });
     } catch (err) {
       console.error(err);
-      setErrorMsg("Network error. Could not connect to backend server.");
+      const netMsg = "Network error. Could not connect to backend server.";
+      setErrorMsg(netMsg);
+      toast.error(netMsg);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleAuth = async () => {
-    setGoogleLoading(true);
-    setErrorMsg(null);
-
-    try {
-      const mockGoogleIdToken = "demo_google_id_token_" + Date.now();
-      const res = await fetch(`${API_BASE_URL}/api/v1/auth/google`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken: mockGoogleIdToken, scope: "email profile" }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.data?.token) {
-          localStorage.setItem("jwt_token", data.data.token);
-          setUser({
-            name: data.data.user?.name || "Google User",
-            email: data.data.user?.email || "user@gmail.com",
-          });
-          await fetchMyLinks();
-          navigate({ to: "/links" });
-          return;
-        }
-      }
-    } catch {
-      /* Fallback to interactive google sign in demo */
+  const handleGoogleAuth = () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      toast.info("Google Auth requires VITE_GOOGLE_CLIENT_ID in env. Please use Email/Password login or configure Google Client ID.");
+      return;
     }
-
-    toast.info("Google Authentication connected! Redirecting to dashboard...");
-    setTimeout(async () => {
-      localStorage.setItem("jwt_token", "demo_google_jwt_" + Date.now());
-      setUser({ name: "Google User", email: "user@gmail.com" });
-      await fetchMyLinks();
-      setGoogleLoading(false);
-      navigate({ to: "/links" });
-    }, 1000);
+    const redirectUri = encodeURIComponent(window.location.origin + "/register");
+    const scope = encodeURIComponent("email profile");
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}`;
+    window.location.href = googleAuthUrl;
   };
 
   return (
@@ -124,10 +113,9 @@ function RegisterPage() {
             variant="outline"
             className="w-full gap-3 h-11 border-border/80 hover:bg-secondary/60"
             onClick={handleGoogleAuth}
-            disabled={googleLoading}
           >
             <GoogleIcon />
-            {googleLoading ? "Connecting to Google..." : "Continue with Google"}
+            Continue with Google
           </Button>
 
           <div className="relative flex items-center justify-center">
