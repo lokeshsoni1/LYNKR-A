@@ -17,8 +17,9 @@ import {
 } from "@/components/ui/accordion";
 import { EXPIRATION_OPTIONS, getExpirationInDays } from "@/lib/mock-data";
 import { API_BASE_URL, formatShortUrl } from "@/config/constants";
-import { Check, Copy, Link2 } from "lucide-react";
+import { Check, Copy, Link2, Loader2 } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { toast } from "sonner";
 
 export function ShortenerCard() {
   const { fetchMyLinks } = useStore();
@@ -36,6 +37,17 @@ export function ShortenerCard() {
     setLoading(true);
     setResult(null);
     setErrorMsg(null);
+
+    let wakeToastId: string | number | undefined = undefined;
+    const timer = setTimeout(() => {
+      wakeToastId = toast.info(
+        "Waking up backend server (Render Free Tier takes ~20s for initial start)... Please wait.",
+        { duration: 15000 }
+      );
+    }, 3000);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
 
     const token = localStorage.getItem("jwt_token");
     const headers: Record<string, string> = {
@@ -56,18 +68,27 @@ export function ShortenerCard() {
         method: "POST",
         headers,
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
+
+      clearTimeout(timer);
+      clearTimeout(timeoutId);
+      if (wakeToastId) toast.dismiss(wakeToastId);
 
       const data = await res.json();
 
       if (res.status === 400 || res.status === 409) {
-        setErrorMsg("Custom alias is already in use. Please try another.");
+        const errorText = "Custom alias already taken. Try another.";
+        setErrorMsg(errorText);
+        toast.error(errorText);
         setLoading(false);
         return;
       }
 
       if (!res.ok || !data.success) {
-        setErrorMsg(data.message || "Failed to shorten URL. Please try again.");
+        const errorText = data.message || "Failed to shorten URL. Please try again.";
+        setErrorMsg(errorText);
+        toast.error(errorText);
         setLoading(false);
         return;
       }
@@ -77,11 +98,25 @@ export function ShortenerCard() {
       const liveShortUrl = formatShortUrl(codeOrAlias);
 
       setResult(liveShortUrl);
+      setUrl("");
+      setAlias("");
+      setExpiration("never");
       setCopied(false);
+      toast.success("Link Shortened Successfully!");
       fetchMyLinks();
-    } catch (err) {
+    } catch (err: any) {
+      clearTimeout(timer);
+      clearTimeout(timeoutId);
+      if (wakeToastId) toast.dismiss(wakeToastId);
+
       console.error(err);
-      setErrorMsg("Network error. Could not connect to backend server.");
+      const isTimeout = err.name === "AbortError";
+      const msg = isTimeout
+        ? "Server taking too long. Please try again in 10 seconds."
+        : "Network error. Could not connect to backend server.";
+      
+      setErrorMsg(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -113,9 +148,10 @@ export function ShortenerCard() {
         <Button
           type="submit"
           size="lg"
-          className="h-12 transition-all duration-200 hover:shadow-[0_0_25px_color-mix(in_oklab,var(--color-primary)_35%,transparent)] active:scale-[0.98] sm:w-40"
+          className="h-12 transition-all duration-200 hover:shadow-[0_0_25px_color-mix(in_oklab,var(--color-primary)_35%,transparent)] active:scale-[0.98] sm:w-40 gap-2"
           disabled={loading}
         >
+          {loading && <Loader2 className="size-4 animate-spin" />}
           {loading ? "Shortening..." : "Shorten URL"}
         </Button>
       </form>
