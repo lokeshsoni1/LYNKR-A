@@ -13,9 +13,7 @@ import appCss from "../styles.css?url";
 import { AppStoreProvider } from "../lib/store";
 import { Navbar } from "../components/navbar";
 import { Footer } from "../components/footer";
-import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "sonner";
-import { GOOGLE_CLIENT_ID } from "../config/constants";
 
 function NotFoundComponent() {
   return (
@@ -94,13 +92,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:title", content: "Lynkr | Modern Link Management & Analytics" },
       { name: "twitter:description", content: "Lynkr turns long URLs into simple, shareable short links with custom aliases, expiration and click analytics." },
     ],
-    scripts: [
-      {
-        src: "https://accounts.google.com/gsi/client",
-        async: true,
-        defer: true,
-      },
-    ],
     links: [
       {
         rel: "stylesheet",
@@ -139,19 +130,17 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <QueryClientProvider client={queryClient}>
-        <AppStoreProvider>
-          <div className="flex min-h-screen flex-col">
-            <Navbar />
-            <main className="flex-1">
-              <Outlet />
-            </main>
-            <Footer />
-          </div>
-          <Toaster position="top-center" />
-        </AppStoreProvider>
-      </QueryClientProvider>
-    </GoogleOAuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AppStoreProvider>
+        <div className="flex min-h-screen flex-col">
+          <Navbar />
+          <main className="flex-1">
+            <Outlet />
+          </main>
+          <Footer />
+        </div>
+        <Toaster position="top-center" />
+      </AppStoreProvider>
+    </QueryClientProvider>
   );
 }

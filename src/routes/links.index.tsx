@@ -180,7 +180,7 @@ function LinksPage() {
       {!user && (
         <div className="mb-8 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <span className="font-semibold">⚠️ Guest Mode:</span> Your links are saved temporarily in browser cache. Log in or Register to save links permanently in database before tab closes!
+            <span className="font-semibold">⚠️ Guest Mode:</span> Log in or Register to save your links permanently in database.
           </div>
           <div className="flex gap-2">
             <Button asChild variant="outline" size="sm" className="border-amber-500/40 text-amber-100 hover:bg-amber-500/20">
