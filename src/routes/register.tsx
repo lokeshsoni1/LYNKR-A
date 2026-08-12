@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useStore } from "@/lib/store";
-import { API_BASE_URL } from "@/config/constants";
+import { API_BASE_URL, GOOGLE_CLIENT_ID } from "@/config/constants";
 import { GoogleIcon } from "./login";
 import { toast } from "sonner";
 
@@ -84,14 +84,9 @@ function RegisterPage() {
   };
 
   const handleGoogleAuth = () => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId) {
-      toast.info("Google Auth requires VITE_GOOGLE_CLIENT_ID in env. Please use Email/Password login or configure Google Client ID.");
-      return;
-    }
     const redirectUri = encodeURIComponent(window.location.origin + "/register");
     const scope = encodeURIComponent("email profile");
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}`;
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}`;
     window.location.href = googleAuthUrl;
   };
 
