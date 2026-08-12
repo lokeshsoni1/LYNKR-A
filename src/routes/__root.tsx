@@ -91,6 +91,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:title", content: "Lynkr | Modern Link Management & Analytics" },
       { name: "twitter:description", content: "Lynkr turns long URLs into simple, shareable short links with custom aliases, expiration and click analytics." },
     ],
+    scripts: [
+      {
+        src: "https://accounts.google.com/gsi/client",
+        async: true,
+        defer: true,
+      },
+    ],
     links: [
       {
         rel: "stylesheet",
