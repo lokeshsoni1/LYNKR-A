@@ -13,6 +13,10 @@ import appCss from "../styles.css?url";
 import { AppStoreProvider } from "../lib/store";
 import { Navbar } from "../components/navbar";
 import { Footer } from "../components/footer";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+import { Toaster } from "sonner";
+
+const GOOGLE_CLIENT_ID_LITERAL = "637130191517-59Ihl18p7ic7smq6n6pdom9ejkmk5ju8.apps.googleusercontent.com";
 
 function NotFoundComponent() {
   return (
@@ -132,25 +136,23 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-import { Toaster } from "sonner";
-
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AppStoreProvider>
-        <div className="flex min-h-screen flex-col">
-          <Navbar />
-          <main className="flex-1">
-            {/* Required: nested routes render here. */}
-            <Outlet />
-          </main>
-          <Footer />
-        </div>
-        <Toaster position="top-center" />
-      </AppStoreProvider>
-    </QueryClientProvider>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID_LITERAL}>
+      <QueryClientProvider client={queryClient}>
+        <AppStoreProvider>
+          <div className="flex min-h-screen flex-col">
+            <Navbar />
+            <main className="flex-1">
+              <Outlet />
+            </main>
+            <Footer />
+          </div>
+          <Toaster position="top-center" />
+        </AppStoreProvider>
+      </QueryClientProvider>
+    </GoogleOAuthProvider>
   );
 }
-
